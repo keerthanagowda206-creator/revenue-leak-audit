@@ -1,2 +1,101 @@
-# revenue-leak-audit
-Revenue leak audit on a simulated D2C business: SQL rules + Isolation Forest found Rs 68.36 lakh in leaks, validated against a hidden answer key, with a recovery plan and Power BI dashboard.
+# Revenue Leak Audit
+
+**Detecting, quantifying and prioritising hidden revenue losses in a simulated Indian D2C e-commerce business.**
+
+I built a realistic company dataset, planted five kinds of revenue leaks in it, found them with SQL rules and an anomaly-detection model, checked my audit against a hidden answer key, sized how much money is recoverable, and presented everything in a Power BI dashboard.
+
+> The company and data are **simulated**. That is deliberate: because I know exactly which leaks exist, I can measure how well the audit works, which is impossible with real data.
+
+![Dashboard](docs/dashboard.png)
+
+## Headline results
+
+| Metric | Result |
+|---|---|
+| Revenue leaked (15 months) | **Rs 68.36 lakh** (7.33% of delivered order value) |
+| Share from two leak types | **93%** (failed payments + unbilled orders) |
+| Realistically recoverable | **Rs 29.8 to 57.6 lakh** (expected Rs 43.75 lakh) |
+| Detection accuracy on simulated data | 100% precision, 100% recall |
+| Naive rule: "any failed payment" | only 44.5% precision |
+| Naive rule: "discount above normal cap" | only 22.0% precision |
+
+The last two rows are the interesting ones. Careful rules (ignoring payments that were successfully retried, and respecting festival-sale discount caps) removed thousands of false alarms.
+
+## The five leaks
+
+| Priority | Leak | Cases | Leaked (Rs lakh) | Expected recoverable (Rs lakh) | Effort (1-5) | Suggested fix |
+|---|---|---|---|---|---|---|
+| 1 | Failed payments, never retried | 1,758 | 36.89 | 22.13 | 2 | Automatic retry plus payment-link reminders |
+| 2 | Delivered orders never invoiced | 1,318 | 26.84 | 18.79 | 3 | Daily reconciliation of orders vs invoices |
+| 3 | Discounts above approved cap | 1,261 | 2.72 | 1.63 | 2 | Enforce the cap in the order system |
+| 4 | Duplicate refunds | 69 | 1.32 | 0.66 | 1 | Block a second refund per order |
+| 5 | Stale Marketplace prices | 265 | 0.59 | 0.53 | 1 | Sync prices with the master price list |
+| | **Total** | **4,671** | **68.36** | **43.75** | | |
+
+Priority = expected money recovered per unit of effort.
+
+## How it works
+
+1. **Simulate the company** (`generate_data.py`): about 50,000 orders, 8,000 customers and 150 products over 15 months, with weekend and festival-sale seasonality. Nine linked tables in SQLite (`schema.sql`).
+2. **Plant the leaks** (`plant_leaks.py`): injects five leak types plus about 2,200 *decoys* (payments that failed but were retried successfully, which are not leaks). Every planted leak is saved in a hidden answer key.
+3. **Detect with SQL rules** (`run_detection.py`): one rule per leak, written in SQLite, with results collected in a `leak_register` table.
+4. **Find unknown leaks with ML** (`find_anomalies.py`): an Isolation Forest profiles every product and channel combination. It surfaced eight Marketplace products sold below list price, a pattern no rule had been written for. That finding became rule 5.
+5. **Validate** (`validate_audit.py`): compares the audit with the answer key row by row (precision, recall, rupee value) and tests whether the decoys fooled it.
+6. **Size and prioritise** (`recovery_plan.py`): conservative, expected and optimistic recovery scenarios, ranked by impact versus effort.
+7. **Dashboard** (`export_for_powerbi.py` and Power BI): KPI cards, leak breakdown, monthly trend, reps with the most out-of-policy discounts, and a "what to fix first" table.
+
+## Run it yourself
+
+Requires Python 3.10+ (SQLite 3.25+ for window functions).
+
+```bash
+pip install -r requirements.txt
+
+python generate_data.py        # builds the clean company data
+python plant_leaks.py          # plants leaks, writes the answer key
+python run_detection.py        # SQL rule engine -> data/output/leak_register.csv
+python find_anomalies.py       # Isolation Forest hunt for unknown leaks
+python validate_audit.py       # scores the audit against the answer key
+python recovery_plan.py        # recovery scenarios and priorities
+python export_for_powerbi.py   # CSVs for the dashboard
+```
+
+Everything uses fixed random seeds, so you will get exactly the same numbers.
+
+**Tip:** do not open `data/ground_truth/ground_truth.csv` before running `validate_audit.py`. It is the answer key.
+
+## Repository structure
+
+```
+revenue-leak-audit/
+├── schema.sql
+├── generate_data.py
+├── plant_leaks.py
+├── run_detection.py
+├── find_anomalies.py
+├── validate_audit.py
+├── recovery_plan.py
+├── export_for_powerbi.py
+├── revenue_leak_audit.pbix        Power BI dashboard
+├── RevenueLeakTheme.json          dashboard theme
+├── CFO_Summary.pdf              one-page executive summary
+├── requirements.txt
+├── docs/                          dashboard screenshot and PDF
+└── data/                          generated by the scripts
+```
+
+## Assumptions and limitations
+
+- **The data is simulated**, so the 100% detection score shows the logic is sound but would be lower on messy real data.
+- **Recovery rates are my assumptions** (for example, 60% of failed payments recoverable with retries), not measured facts. They are defined at the top of `recovery_plan.py` and easy to change.
+- Some leaks can be partly **collected now** (unbilled orders), while others are **prevented in future** (discount abuse). "Recoverable" covers both.
+- The yearly figure (about Rs 54.7 lakh) is a simple scale-up from 15 months and is only a rough headline.
+- In the dashboard, **Leakage % of delivered order value** is only reliable when filtering by month or leak type, because revenue is stored per month, not per channel.
+
+## Skills demonstrated
+
+SQL (joins, window functions, CTEs), Python (pandas, scikit-learn), data simulation, anomaly detection, KPI design, model validation (precision and recall), scenario analysis, Power BI (DAX measures, relationships, visual design) and business storytelling.
+
+## Author
+
+**KEERTHANA D B** | https://www.linkedin.com/in/keerthana-d-b-9357482b1 | keerthanagowda206@gmail.com

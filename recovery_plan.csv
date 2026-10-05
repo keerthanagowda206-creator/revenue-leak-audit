@@ -1,0 +1,6 @@
+priority,leak_label,leak_type,cases,leaked,cons,exp,opt,effort,cause,fix,recover_cons,recover_exp,recover_opt,priority_score
+1,"Failed payments, no retry",FAILED_PAYMENT_NO_RETRY,1758,3689066.4,0.4,0.6,0.8,2,Failed payments are never retried or followed up,Automatic payment retry plus payment-link reminders for failed orders,1475626.56,2213439.84,2951253.12,1106719.92
+2,Unbilled orders,UNBILLED_ORDER,1318,2684339.6,0.5,0.7,0.9,3,No check that every delivered order gets an invoice,Daily reconciliation of delivered orders vs invoices; raise missing invoices,1342169.8,1879037.72,2415905.64,626345.9066666666
+3,Discounts above cap,DISCOUNT_ABUSE,1261,272015.8,0.3,0.6,0.9,2,Reps can give discounts above the approved cap,Enforce the cap in the order system; manager approval above the limit,81604.73999999999,163209.47999999998,244814.22,81604.73999999999
+4,Duplicate refunds,DUPLICATE_REFUND,69,131880.6,0.3,0.5,0.7,1,Refund process allows the same order to be refunded twice,Block a second refund per order; claw back existing duplicates,39564.18,65940.3,92316.42,65940.3
+5,Stale marketplace prices,STALE_PRICE,265,58791.1,0.7,0.9,1.0,1,Marketplace price list was not updated,Sync Marketplace prices with the master price list automatically,41153.77,52911.99,58791.1,52911.99
