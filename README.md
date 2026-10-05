@@ -6,7 +6,7 @@ I built a realistic company dataset, planted five kinds of revenue leaks in it, 
 
 > The company and data are **simulated**. That is deliberate: because I know exactly which leaks exist, I can measure how well the audit works, which is impossible with real data.
 
-![Dashboard](docs/dashboard.png)
+![Dashboard](dashboard.png)
 
 ## Headline results
 
